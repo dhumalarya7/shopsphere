@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopSphere | Premium Tech Store</title>
+    <meta name="description" content="ShopSphere is a responsive tech shopping website with product search, wishlist, cart, login, and checkout flows.">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="#/" data-route="/">
+            <span class="brand-mark">S</span>
+            <span>ShopSphere</span>
+        </a>
+
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <nav class="nav-panel" id="navPanel" aria-label="Main navigation">
+            <a href="#/" data-route="/">Home</a>
+            <a href="#/products" data-route="/products">Products</a>
+            <a href="#/wishlist" data-route="/wishlist">Wishlist</a>
+            <a href="#/about" data-route="/about">About</a>
+            <a href="#/contact" data-route="/contact">Contact</a>
+            <a class="cart-link" href="#/cart" data-route="/cart">Cart <span id="cartCount">0</span></a>
+            <a class="auth-link" id="authLink" href="#/login" data-route="/login">Login</a>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+        </nav>
+    </header>
+
+    <main id="main" tabindex="-1"></main>
+
+    <footer class="footer">
+        <div>
+            <a class="brand footer-brand" href="#/">
+                <span class="brand-mark">S</span>
+                <span>ShopSphere</span>
+            </a>
+            <p>Five selected premium tech products in one fast static storefront.</p>
+        </div>
+        <div class="footer-links">
+            <a href="#/products">Products</a>
+            <a href="#/wishlist">Wishlist</a>
+            <button id="footerNewsletter" type="button">Newsletter</button>
+        </div>
+        <p class="copyright">&copy; <span id="year"></span> ShopSphere. All rights reserved.</p>
+    </footer>
+
+    <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top">Top</button>
+    <div class="modal-root" id="modalRoot" aria-hidden="true"></div>
+    <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

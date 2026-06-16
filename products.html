@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - ShopSphere</title>
+    <meta http-equiv="refresh" content="0; url=index.html#/products">
+</head> 
+<body>
+    <p>Redirecting to <a href="index.html#/products">ShopSphere products</a>.</p>
+    <script>location.replace("index.html#/products");</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Products</title>
+</head>
+<body>
+
+<h1>Products From FastAPI</h1>
+
+<div id="productGrid"></div>
+
+<script>
+async function loadProducts() {
+
+    const response =
+        await fetch("http://127.0.0.1:8000/products");
+
+    const products =
+        await response.json();
+
+    console.log(products);
+
+    const grid =
+        document.getElementById("productGrid");
+
+    products.forEach(product => {
+
+        grid.innerHTML += `
+            <h3>${product.name}</h3>
+            <p>₹${product.price}</p>
+            <hr>
+        `;
+    });
+}
+
+loadProducts();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head> <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopping Cart - ShopSphere</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+.cart-container{
+    max-width:1200px;
+    margin:50px auto;
+    padding:20px;
+}
+
+.cart-title{
+    text-align:center;
+    margin-bottom:30px;
+    font-size:36px;
+    color:#0f172a;
+}
+
+.cart-table{
+    width:100%;
+    background:white;
+    border-radius:15px;
+    overflow:hidden;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+    border-collapse:collapse;
+}
+
+.cart-table th{
+    background:#6366f1;
+    color:white;
+    padding:15px;
+}
+
+.cart-table td{
+    padding:20px;
+    text-align:center;
+    border-bottom:1px solid #eee;
+}
+
+.product-img{
+    width:80px;
+    border-radius:10px;
+}
+
+.quantity{
+    width:60px;
+    padding:5px;
+    text-align:center;
+}
+
+.cart-summary{
+    margin-top:30px;
+    text-align:right;
+}
+
+.cart-summary h2{
+    margin-bottom:20px;
+}
+
+.checkout-btn{
+    background:#6366f1;
+    color:white;
+    text-decoration:none;
+    padding:12px 25px;
+    border-radius:10px;
+    display:inline-block;
+}
+
+.checkout-btn:hover{
+    opacity:0.9;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav class="navbar">
+
+```
+<div class="logo">ShopSphere</div>
+
+<ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="products.html">Products</a></li>
+    <li><a href="cart.html">Cart</a></li>
+    <li><a href="login.html">Login</a></li>
+</ul>
+```
+
+</nav>
+
+<div class="cart-container">
+
+```
+<h1 class="cart-title">Your Shopping Cart</h1>
+
+<table class="cart-table">
+
+    <tr>
+        <th>Product</th>
+        <th>Image</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Total</th>
+    </tr>
+
+    <tr>
+        <td>iPhone 15</td>
+
+        <td>
+            <img class="product-img"
+            src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500">
+        </td>
+
+        <td>₹69,999</td>
+
+        <td>
+            <input class="quantity" type="number" value="1">
+        </td>
+
+        <td>₹69,999</td>
+    </tr>
+
+    <tr>
+        <td>Smart Watch</td>
+
+        <td>
+            <img class="product-img"
+            src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500">
+        </td>
+
+        <td>₹4,999</td>
+
+        <td>
+            <input class="quantity" type="number" value="1">
+        </td>
+
+        <td>₹4,999</td>
+    </tr>
+
+</table>
+
+<div class="cart-summary">
+
+    <h2>Grand Total: ₹74,998</h2>
+
+    <a href="checkout.html" class="checkout-btn">
+        Proceed to Checkout
+    </a>
+
+</div>
+```
+
+</div>
+
+</body>
+</html>
