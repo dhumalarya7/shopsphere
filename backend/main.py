@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from jose import jwt
 from datetime import datetime, timedelta
-from database import engine, Base, SessionLocal
-import models
-from models import User
 
+from backend.database import engine, Base, SessionLocal
+from backend import models
+from backend.models import User
 app = FastAPI()
 
 # Create tables
