@@ -1,3 +1,4 @@
+const API_URL = "https://shopsphere-zqm5.onrender.com";
 const productGroups = [
     {
         category: "Premium Tech",
@@ -674,21 +675,38 @@ function login(form) {
     setTimeout(() => location.hash = "#/products", 550);
 }
 
-function register(form) {
+async function register(form) {
     const values = Object.fromEntries(new FormData(form));
-    clearErrors(form);
-    const errors = validateAuth(values, true);
-    if (Object.keys(errors).length) {
-        showErrors(form, errors);
-        showMessage("Please fix the highlighted fields.", "error");
-        return;
+
+    try {
+        const response = await fetch(
+            "https://shopsphere-zqm5.onrender.com/register",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: values.name,
+                    email: values.email,
+                    password: values.password
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Registration Successful!");
+            location.hash = "#/login";
+        } else {
+            alert(data.detail || "Registration Failed");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Server Error");
     }
-    state.user = { email: values.email.trim(), name: values.name.trim() };
-    writeStorage("shopsphere_user", state.user);
-    updateHeader();
-    showMessage("Account created. Redirecting to products...", "success");
-    toast("Account created successfully", "success");
-    setTimeout(() => location.hash = "#/products", 550);
+}
 }
 
 function logout() {
