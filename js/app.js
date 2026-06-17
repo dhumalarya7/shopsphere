@@ -658,21 +658,46 @@ function setLoading(button, isLoading) {
     button.disabled = isLoading;
 }
 
-function login(form) {
+async function login(form) {
     const values = Object.fromEntries(new FormData(form));
-    clearErrors(form);
-    const errors = validateAuth(values);
-    if (Object.keys(errors).length) {
-        showErrors(form, errors);
-        showMessage("Please fix the highlighted fields.", "error");
-        return;
+
+    try {
+        const response = await fetch(
+            "https://shopsphere-zqm5.onrender.com/login",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: values.email,
+                    password: values.password
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            localStorage.setItem(
+                "access_token",
+                data.access_token
+            );
+
+            alert("Login Successful!");
+
+            location.hash = "#/products";
+
+        } else {
+            alert(data.detail || "Login Failed");
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Server Error");
     }
-    state.user = { email: values.email.trim(), name: values.email.split("@")[0] };
-    writeStorage("shopsphere_user", state.user);
-    updateHeader();
-    showMessage("Login successful. Redirecting to products...", "success");
-    toast("Logged in successfully", "success");
-    setTimeout(() => location.hash = "#/products", 550);
+}
 }
 
 async function register(form) {
