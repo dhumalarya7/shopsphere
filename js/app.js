@@ -698,7 +698,7 @@ async function login(form) {
         alert("Server Error");
     }
 }
-}
+
 
 async function register(form) {
     const values = Object.fromEntries(new FormData(form));
