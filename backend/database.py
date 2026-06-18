@@ -4,10 +4,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres.bdbmpzpounxesxyoevxe:Ucandoitsupabase@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres",
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is missing")
 
 engine = create_engine(
     DATABASE_URL,

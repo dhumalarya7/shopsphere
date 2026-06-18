@@ -1,0 +1,33 @@
+{
+    "cleanUrls": true,
+    "rewrites": [
+        {
+            "source": "/products",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/cart",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/login",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/register",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/wishlist",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/about",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/contact",
+            "destination": "/index.html"
+        }
+    ]
+}

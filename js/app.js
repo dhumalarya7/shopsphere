@@ -13,7 +13,7 @@ const productGroups = [
     }
 ];
 
-const products = productGroups.flatMap((group, groupIndex) =>
+const localProducts = productGroups.flatMap((group, groupIndex) =>
     group.items.map(([name, price, oldPrice, rating, description, image], itemIndex) => ({
         id: String(itemIndex + 1),
         name,
@@ -26,6 +26,7 @@ const products = productGroups.flatMap((group, groupIndex) =>
         description
     }))
 );
+let products = [...localProducts];
 
 const fallbackImage = "images/sections/hero.jpg";
 const TAX_RATE = 0.18;
@@ -87,6 +88,7 @@ document.addEventListener("keydown", (event) => {
 
 renderRoute();
 updateHeader();
+loadProductsFromApi();
 
 function readStorage(key, fallback) {
     try {
@@ -109,9 +111,68 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+async function requestJson(path, options = {}) {
+    const response = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+        }
+    });
+
+    let data = null;
+    try {
+        data = await response.json();
+    } catch {
+        data = null;
+    }
+
+    if (!response.ok) {
+        throw new Error(data?.detail || data?.error || "Request failed");
+    }
+
+    return data;
+}
+
+function normalizeApiProduct(apiProduct, index) {
+    const matchingLocalProduct = localProducts.find(product =>
+        product.name.toLowerCase() === String(apiProduct.name || "").toLowerCase()
+    );
+    const fallback = matchingLocalProduct || localProducts[index % localProducts.length] || {};
+    const price = Number(apiProduct.price ?? fallback.price ?? 0);
+
+    return {
+        id: String(apiProduct.id ?? fallback.id ?? index + 1),
+        name: apiProduct.name || fallback.name || "Product",
+        category: apiProduct.category || fallback.category || "Premium Tech",
+        price,
+        oldPrice: Number(apiProduct.oldPrice ?? apiProduct.old_price ?? fallback.oldPrice ?? price),
+        rating: Number(apiProduct.rating ?? fallback.rating ?? 4.5),
+        date: apiProduct.date || fallback.date || new Date().toISOString().slice(0, 10),
+        image: apiProduct.image || fallback.image || fallbackImage,
+        description: apiProduct.description || fallback.description || "Premium ShopSphere product."
+    };
+}
+
+async function loadProductsFromApi() {
+    try {
+        const apiProducts = await requestJson("/products", { method: "GET" });
+        if (!Array.isArray(apiProducts) || !apiProducts.length) return;
+
+        products = apiProducts.map(normalizeApiProduct);
+        if (["/", "/products", "/wishlist", "/cart"].includes(getRoute().path)) {
+            renderRoute();
+        }
+    } catch {
+        products = [...localProducts];
+    }
+}
+
 function getRoute() {
-    const hash = location.hash.replace(/^#/, "") || "/";
-    const [path, query = ""] = hash.split("?");
+    const routeSource = location.hash
+        ? location.hash.replace(/^#/, "")
+        : location.pathname.replace(/\/index\.html$/, "/");
+    const [path, query = location.search.replace(/^\?/, "")] = (routeSource || "/").split("?");
     return { path, params: new URLSearchParams(query) };
 }
 
@@ -660,83 +721,89 @@ function setLoading(button, isLoading) {
 
 async function login(form) {
     const values = Object.fromEntries(new FormData(form));
+    const submitButton = form.querySelector("button[type='submit']");
+    clearErrors(form);
+
+    const errors = validateAuth(values);
+    if (Object.keys(errors).length) {
+        showErrors(form, errors);
+        showMessage("Please fix the highlighted fields.", "error");
+        return;
+    }
+
+    setLoading(submitButton, true);
 
     try {
-        const response = await fetch(
-            "https://shopsphere-zqm5.onrender.com/login",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    email: values.email,
-                    password: values.password
-                })
-            }
-        );
+        const data = await requestJson("/login", {
+            method: "POST",
+            body: JSON.stringify({
+                email: values.email,
+                password: values.password
+            })
+        });
 
-        const data = await response.json();
-
-        if (response.ok) {
-
-            localStorage.setItem(
-                "access_token",
-                data.access_token
-            );
-
-            alert("Login Successful!");
-
-            location.hash = "#/products";
-
-        } else {
-            alert(data.detail || "Login Failed");
-        }
-
+        state.user = {
+            id: data.user?.id,
+            name: data.user?.name || values.email,
+            email: data.user?.email || values.email,
+            token: data.access_token
+        };
+        localStorage.setItem("access_token", data.access_token);
+        writeStorage("shopsphere_user", state.user);
+        updateHeader();
+        showMessage("Login successful.", "success");
+        toast("Login successful", "success");
+        location.hash = "#/products";
     } catch (error) {
-        console.error(error);
-        alert("Server Error");
+        showMessage(error.message || "Login failed.", "error");
+        toast("Login failed", "error");
+    } finally {
+        setLoading(submitButton, false);
     }
 }
 
 
 async function register(form) {
     const values = Object.fromEntries(new FormData(form));
+    const submitButton = form.querySelector("button[type='submit']");
+    clearErrors(form);
+
+    const errors = validateAuth(values, true);
+    if (Object.keys(errors).length) {
+        showErrors(form, errors);
+        showMessage("Please fix the highlighted fields.", "error");
+        return;
+    }
+
+    setLoading(submitButton, true);
 
     try {
-        const response = await fetch(
-            "https://shopsphere-zqm5.onrender.com/register",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    name: values.name,
-                    email: values.email,
-                    password: values.password
-                })
-            }
-        );
+        await requestJson("/register", {
+            method: "POST",
+            body: JSON.stringify({
+                name: values.name,
+                email: values.email,
+                password: values.password
+            })
+        });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            alert("Registration Successful!");
-            location.hash = "#/login";
-        } else {
-            alert(data.detail || "Registration Failed");
-        }
+        form.reset();
+        showMessage("Registration successful. You can now log in.", "success");
+        toast("Registration successful", "success");
+        location.hash = "#/login";
     } catch (error) {
-        console.error(error);
-        alert("Server Error");
+        showMessage(error.message || "Registration failed.", "error");
+        toast("Registration failed", "error");
+    } finally {
+        setLoading(submitButton, false);
     }
 }
-}
+
 
 function logout() {
     state.user = null;
     localStorage.removeItem("shopsphere_user");
+    localStorage.removeItem("access_token");
     updateHeader();
     toast("Logged out", "success");
     location.hash = "#/";
