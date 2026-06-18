@@ -111,8 +111,9 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-async function requestJson(path, options = {}) {
-    const response = await fetch(`${API_URL}${path}`, {
+async function requestJson(endpoint, options = {}) {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_URL}${endpoint}`;
+    const response = await fetch(url, {
         ...options,
         headers: {
             "Content-Type": "application/json",
@@ -734,7 +735,7 @@ async function login(form) {
     setLoading(submitButton, true);
 
     try {
-        const data = await requestJson("/login", {
+        const data = await requestJson(`${API_URL}/login`, {
             method: "POST",
             body: JSON.stringify({
                 email: values.email,
@@ -778,7 +779,7 @@ async function register(form) {
     setLoading(submitButton, true);
 
     try {
-        await requestJson("/register", {
+        await requestJson(`${API_URL}/register`, {
             method: "POST",
             body: JSON.stringify({
                 name: values.name,

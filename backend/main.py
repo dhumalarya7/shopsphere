@@ -34,21 +34,18 @@ DEFAULT_PRODUCTS = [
     {"name": "Samsung Odyssey G6", "price": 39999},
 ]
 
-app = FastAPI(title="ShopSphere API")
-
-
-ALLOWED_ORIGINS = [
-    "https://shopsphere-tau-mauve.vercel.app",
-    "https://shopsphere-ariii1.vercel.app",
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[
+        "https://shopsphere-tau-mauve.vercel.app",
+        "https://shopsphere-ariii1.vercel.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
