@@ -49,9 +49,12 @@ const menuToggle = document.querySelector("#menuToggle");
 const cartCount = document.querySelector("#cartCount");
 const authLink = document.querySelector("#authLink");
 const modalRoot = document.querySelector("#modalRoot");
+const themeToggle = document.querySelector("#themeToggle");
+const themeLabel = document.querySelector("#themeLabel");
 
 document.querySelector("#year").textContent = new Date().getFullYear();
 document.body.classList.toggle("dark", state.theme === "dark");
+updateThemeLabel();
 
 menuToggle.addEventListener("click", () => {
     const isOpen = navPanel.classList.toggle("open");
@@ -60,16 +63,17 @@ menuToggle.addEventListener("click", () => {
     menuToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
 });
 
-document.querySelector("#themeToggle").addEventListener("click", () => {
+themeToggle.addEventListener("click", () => {
     state.theme = document.body.classList.toggle("dark") ? "dark" : "light";
     localStorage.setItem("shopsphere_theme", state.theme);
+    updateThemeLabel();
     toast(`${state.theme === "dark" ? "Dark" : "Light"} mode enabled`, "success");
 });
 
 document.querySelector("#backToTop").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 document.querySelector("#footerNewsletter").addEventListener("click", () => {
     location.hash = "#/";
-    setTimeout(() => document.querySelector("#newsletterEmail")?.focus(), 80);
+    setTimeout(() => document.querySelector("#newsletterEmail")?.focus(), 100);
 });
 
 window.addEventListener("scroll", () => {
@@ -101,6 +105,20 @@ function readStorage(key, fallback) {
 
 function writeStorage(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+}
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+    }[character]));
+}
+
+function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
 function formatCurrency(amount) {
@@ -180,6 +198,7 @@ function getRoute() {
 function renderRoute() {
     const { path, params } = getRoute();
     closeMobileMenu();
+    closeModal();
     if (path === "/products") {
         state.filters.category = params.get("category") || state.filters.category || "All";
         renderProductsPage();
@@ -198,6 +217,7 @@ function renderRoute() {
     } else {
         renderHomePage();
     }
+    updateHeader();
     updateActiveLinks(path);
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -214,9 +234,18 @@ function updateHeader() {
     }
 }
 
+function updateThemeLabel() {
+    const isDark = state.theme === "dark";
+    themeLabel.textContent = isDark ? "Dark" : "Light";
+    themeToggle.setAttribute("aria-label", `Switch to ${isDark ? "light" : "dark"} theme`);
+}
+
 function updateActiveLinks(path) {
     document.querySelectorAll("[data-route]").forEach((link) => {
-        link.classList.toggle("active", link.dataset.route === path);
+        const isActive = link.dataset.route === path;
+        link.classList.toggle("active", isActive);
+        if (isActive) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
     });
 }
 
@@ -242,7 +271,9 @@ function handleDocumentClick(event) {
     if (action === "quick-view") openQuickView(id);
     if (action === "wishlist") toggleWishlist(id);
     if (action === "category") {
-        location.hash = `#/products?category=${encodeURIComponent(category)}`;
+        const nextHash = `#/products?category=${encodeURIComponent(category)}`;
+        if (location.hash === nextHash) renderProductsPage();
+        else location.hash = nextHash;
     }
     if (action === "increase") changeQuantity(id, 1);
     if (action === "decrease") changeQuantity(id, -1);
@@ -250,6 +281,7 @@ function handleDocumentClick(event) {
     if (action === "checkout") checkout(button);
     if (action === "clear-filters") {
         state.filters = { search: "", category: "All", sort: "newest" };
+        if (getRoute().path === "/products") history.replaceState(null, "", "#/products");
         renderProductsPage();
     }
 }
@@ -264,29 +296,37 @@ function handleSubmit(event) {
 }
 
 function imageHtml(product, className = "") {
-    return `<img class="${className}" src="${product.image}" alt="${product.name}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImage}';">`;
+    const classAttribute = className ? ` class="${escapeAttribute(className)}"` : "";
+    const src = escapeAttribute(product.image || fallbackImage);
+    const alt = escapeAttribute(product.name || "ShopSphere product");
+    return `<img${classAttribute} src="${src}" alt="${alt}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackImage}';">`;
 }
 
 function productCard(product) {
     const wished = state.wishlist.includes(product.id);
+    const safeId = escapeAttribute(product.id);
+    const name = escapeHtml(product.name);
+    const category = escapeHtml(product.category);
+    const description = escapeHtml(product.description);
     return `
         <article class="product-card">
-            <button class="icon-button wishlist-btn ${wished ? "active" : ""}" type="button" data-action="wishlist" data-id="${product.id}" aria-label="${wished ? "Remove from" : "Add to"} wishlist">&hearts;</button>
+            <button class="icon-button wishlist-btn ${wished ? "active" : ""}" type="button" data-action="wishlist" data-id="${safeId}" aria-label="${wished ? "Remove from" : "Add to"} wishlist">&hearts;</button>
             <div class="product-image">${imageHtml(product)}</div>
             <div class="product-body">
                 <div class="product-meta">
-                    <span class="badge">${product.category}</span>
-                    <span class="rating">&starf; ${product.rating}</span>
+                    <span class="badge">${category}</span>
+                    <span class="rating">&starf; ${escapeHtml(product.rating)}</span>
                 </div>
-                <h3>${product.name}</h3>
-                <p>${product.description}</p>
+                <h3>${name}</h3>
+                <p>${description}</p>
                 <div class="price-row">
                     <span class="price">${formatCurrency(product.price)}</span>
                     <span class="old-price">${formatCurrency(product.oldPrice)}</span>
                 </div>
                 <div class="card-actions">
-                    <button class="button" type="button" data-action="add-cart" data-id="${product.id}">Add to Cart</button>
-                    <button class="button button-secondary" type="button" data-action="quick-view" data-id="${product.id}">Quick View</button>
+                    <button class="button" type="button" data-action="add-cart" data-id="${safeId}">Add to Cart</button>
+                    <button class="button button-secondary" type="button" data-action="wishlist" data-id="${safeId}">${wished ? "Saved" : "Wishlist"}</button>
+                    <button class="text-button" type="button" data-action="quick-view" data-id="${safeId}">Quick View</button>
                 </div>
             </div>
         </article>
@@ -294,36 +334,68 @@ function productCard(product) {
 }
 
 function renderHomePage() {
-    const featured = products.map(productCard).join("");
+    const heroProduct = products[0] || localProducts[0];
+    const featured = products.slice(0, 4).map(productCard).join("");
     main.innerHTML = `
         <section class="page hero">
             <div class="hero-copy">
                 <p class="eyebrow">Premium technology</p>
-                <h1>Apple, Sony, and Samsung essentials in one clean store.</h1>
-                <p>Shop 5 selected products with quick search, saved favorites, and a cart that remembers your picks.</p>
+                <h1>Shop smarter. Live better.</h1>
+                <p>Premium tech essentials curated for speed, style, and everyday use.</p>
                 <div class="hero-actions">
-                    <a class="button" href="#/products">Explore Products</a>
+                    <a class="button" href="#/products">Shop Products</a>
                     <a class="button button-outline" href="#/wishlist">View Wishlist</a>
                 </div>
-                <div class="stats-grid" aria-label="Store highlights">
-                    <div class="stat-card"><strong>5</strong><span>Products only</span></div>
-                    <div class="stat-card"><strong>3</strong><span>Top tech brands</span></div>
-                    <div class="stat-card"><strong>Fast</strong><span>Search and cart</span></div>
+                <div class="trust-grid" aria-label="Store highlights">
+                    <span class="trust-badge">Fast Checkout</span>
+                    <span class="trust-badge">Curated Products</span>
+                    <span class="trust-badge">Secure Login</span>
+                    <span class="trust-badge">Modern Experience</span>
                 </div>
             </div>
-            <div class="hero-media">
-                <img src="images/sections/frontpage-tech-shopping.jpg" alt="Online shopping boxes on a laptop keyboard" onerror="this.onerror=null;this.src='${fallbackImage}';">
+            <div class="hero-stage" aria-label="Featured ShopSphere product preview">
+                <div class="hero-visual">
+                    <div class="hero-device">
+                        ${imageHtml(heroProduct)}
+                        <div class="hero-product-card">
+                            <span class="badge">${escapeHtml(heroProduct.category)}</span>
+                            <h2>${escapeHtml(heroProduct.name)}</h2>
+                            <p>${escapeHtml(heroProduct.description)}</p>
+                            <strong>${formatCurrency(heroProduct.price)}</strong>
+                        </div>
+                    </div>
+                    <div class="hero-metrics" aria-label="Shopping benefits">
+                        <div class="metric-pill"><strong>5 min</strong><span>Fast discovery flow</span></div>
+                        <div class="metric-pill"><strong>18%</strong><span>Tax-ready summary</span></div>
+                        <div class="metric-pill"><strong>24/7</strong><span>Static storefront</span></div>
+                    </div>
+                </div>
             </div>
         </section>
         <section class="page section">
             <div class="section-heading">
                 <div>
-                    <p class="eyebrow">Featured picks</p>
+                    <p class="eyebrow">Featured products</p>
                     <h2>Popular right now</h2>
+                    <p>A tight selection of everyday tech with clear pricing, ratings, quick preview, cart, and wishlist actions.</p>
                 </div>
                 <a class="button button-outline" href="#/products">Shop all</a>
             </div>
             <div class="product-grid">${featured}</div>
+        </section>
+        <section class="page section">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Why ShopSphere?</p>
+                    <h2>A calmer way to buy tech</h2>
+                </div>
+            </div>
+            <div class="feature-grid">
+                <article class="info-card"><strong>01</strong><h3>Focused catalog</h3><p>Every product card is built for quick comparison with image, category, rating, price, and saved state.</p></article>
+                <article class="info-card"><strong>02</strong><h3>Frictionless cart</h3><p>Quantity controls, subtotal, tax, shipping, and total stay visible without cluttering the buying flow.</p></article>
+                <article class="info-card"><strong>03</strong><h3>Wishlist-first browsing</h3><p>Save products as you scan, then return later with the same premium card layout and cart actions.</p></article>
+                <article class="info-card"><strong>04</strong><h3>Built for any screen</h3><p>Responsive spacing, tappable controls, and glass surfaces keep the storefront polished on mobile and desktop.</p></article>
+            </div>
             ${newsletterBlock()}
         </section>
     `;
@@ -337,19 +409,24 @@ function renderProductsPage() {
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Product catalog</p>
-                    <h1>Find your next favorite product</h1>
+                    <h1>Premium essentials, easy to compare</h1>
                     <p>Search instantly, filter by category, sort by price or newest arrivals, and preview details before adding to cart.</p>
+                    <div class="chip-row category-chips" aria-label="Category filters">
+                        ${categories.map(category => `
+                            <button class="chip-button ${state.filters.category === category ? "active" : ""}" type="button" data-action="category" data-category="${escapeAttribute(category)}">${escapeHtml(category)}</button>
+                        `).join("")}
+                    </div>
                 </div>
             </div>
             <div class="controls" role="search">
                 <div class="field">
                     <label for="searchInput">Search products</label>
-                    <input id="searchInput" type="search" value="${state.filters.search}" placeholder="Search MacBook, iPhone, Sony, Watch, Samsung..." autocomplete="off">
+                    <input id="searchInput" type="search" value="${escapeAttribute(state.filters.search)}" placeholder="Search MacBook, iPhone, Sony, Watch, Samsung..." autocomplete="off">
                 </div>
                 <div class="field">
                     <label for="categorySelect">Category</label>
                     <select id="categorySelect">
-                        ${categories.map(category => `<option value="${category}" ${state.filters.category === category ? "selected" : ""}>${category}</option>`).join("")}
+                        ${categories.map(category => `<option value="${escapeAttribute(category)}" ${state.filters.category === category ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}
                     </select>
                 </div>
                 <div class="field">
@@ -366,7 +443,7 @@ function renderProductsPage() {
                 <button class="text-button" type="button" data-action="clear-filters">Clear filters</button>
             </div>
             <div id="productResults" class="${list.length ? "product-grid" : ""}">
-                ${list.length ? list.map(productCard).join("") : emptyState("No Products Found", "Try a different search term, category, or sorting option.")}
+                ${list.length ? list.map(productCard).join("") : emptyState("No products found", "Try a different search term, category, or sorting option.")}
             </div>
         </section>
     `;
@@ -374,11 +451,15 @@ function renderProductsPage() {
     document.querySelector("#searchInput").addEventListener("input", (event) => {
         state.filters.search = event.target.value;
         renderProductsPage();
-        document.querySelector("#searchInput")?.focus();
+        const input = document.querySelector("#searchInput");
+        input?.focus();
+        input?.setSelectionRange(input.value.length, input.value.length);
     });
     document.querySelector("#categorySelect").addEventListener("change", (event) => {
         state.filters.category = event.target.value;
-        renderProductsPage();
+        const nextHash = `#/products?category=${encodeURIComponent(state.filters.category)}`;
+        if (location.hash === nextHash) renderProductsPage();
+        else location.hash = nextHash;
     });
     document.querySelector("#sortSelect").addEventListener("change", (event) => {
         state.filters.sort = event.target.value;
@@ -410,9 +491,10 @@ function renderCartPage() {
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Shopping cart</p>
-                    <h1>Your cart</h1>
-                    <p>Review quantities, remove items, and see totals update automatically.</p>
+                    <h1>Your cart is ready</h1>
+                    <p>Review quantities, remove items, and see totals update automatically before checkout.</p>
                 </div>
+                ${items.length ? `<a class="button button-outline" href="#/products">Continue shopping</a>` : ""}
             </div>
             ${items.length ? `
                 <div class="cart-layout">
@@ -421,24 +503,28 @@ function renderCartPage() {
                             <article class="cart-item">
                                 ${imageHtml(product)}
                                 <div>
-                                    <span class="badge">${product.category}</span>
-                                    <h3>${product.name}</h3>
+                                    <span class="badge">${escapeHtml(product.category)}</span>
+                                    <h3>${escapeHtml(product.name)}</h3>
                                     <p>${formatCurrency(product.price)} each</p>
                                 </div>
                                 <div class="cart-row">
-                                    <div class="quantity-control" aria-label="Quantity for ${product.name}">
-                                        <button class="quantity-button" type="button" data-action="decrease" data-id="${product.id}" aria-label="Decrease quantity">&minus;</button>
+                                    <div class="quantity-control" aria-label="Quantity for ${escapeAttribute(product.name)}">
+                                        <button class="quantity-button" type="button" data-action="decrease" data-id="${escapeAttribute(product.id)}" aria-label="Decrease quantity">&minus;</button>
                                         <strong>${quantity}</strong>
-                                        <button class="quantity-button" type="button" data-action="increase" data-id="${product.id}" aria-label="Increase quantity">+</button>
+                                        <button class="quantity-button" type="button" data-action="increase" data-id="${escapeAttribute(product.id)}" aria-label="Increase quantity">+</button>
                                     </div>
                                     <strong>${formatCurrency(product.price * quantity)}</strong>
-                                    <button class="text-button" type="button" data-action="remove" data-id="${product.id}">Remove</button>
+                                    <button class="text-button" type="button" data-action="remove" data-id="${escapeAttribute(product.id)}">Remove</button>
                                 </div>
                             </article>
                         `).join("")}
                     </div>
                     <aside class="summary-card" aria-label="Order summary">
                         <h2>Order summary</h2>
+                        <div class="summary-note">
+                            <strong>Secure checkout preview</strong>
+                            <p>Totals include estimated tax and shipping for this static storefront flow.</p>
+                        </div>
                         <div class="summary-line"><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
                         <div class="summary-line"><span>Tax (18%)</span><strong>${formatCurrency(tax)}</strong></div>
                         <div class="summary-line"><span>Shipping</span><strong>${shipping ? formatCurrency(shipping) : "Free"}</strong></div>
@@ -446,7 +532,7 @@ function renderCartPage() {
                         <button class="button" type="button" data-action="checkout">Checkout</button>
                     </aside>
                 </div>
-            ` : emptyState("Your cart is empty", "Add a few products to see your order summary here.", "Browse products", "#/products")}
+            ` : emptyState("Your cart is empty", "Add a few products to see your order summary, tax, shipping, and checkout action here.", "Browse products", "#/products")}
         </section>
     `;
 }
@@ -461,8 +547,9 @@ function renderWishlistPage() {
                     <h1>Your wishlist</h1>
                     <p>Keep track of favorite products and move them to cart when ready.</p>
                 </div>
+                ${wished.length ? `<a class="button button-outline" href="#/products">Find more products</a>` : ""}
             </div>
-            ${wished.length ? `<div class="product-grid">${wished.map(productCard).join("")}</div>` : emptyState("No favorites yet", "Tap the heart on any product to save it here.", "Explore products", "#/products")}
+            ${wished.length ? `<div class="product-grid">${wished.map(productCard).join("")}</div>` : emptyState("No favorites yet", "Tap Wishlist on any product to save it here with the same premium card layout.", "Explore products", "#/products")}
         </section>
     `;
 }
@@ -471,16 +558,17 @@ function renderAuthPage(mode) {
     const isLogin = mode === "login";
     main.innerHTML = `
         <section class="page auth-wrap">
-            <div class="section-heading">
-                <div>
+            <div class="auth-intro">
+                <div class="section-heading">
                     <p class="eyebrow">${isLogin ? "Welcome back" : "Create account"}</p>
-                    <h1>${isLogin ? "Login to continue shopping" : "Register for faster checkout"}</h1>
-                    <p>Authentication is stored locally for this static demo, including validation and logout behavior.</p>
-                    <div class="chip-row">
-                        <span class="chip">Persistent cart</span>
-                        <span class="chip">Saved wishlist</span>
-                        <span class="chip">Local account state</span>
-                    </div>
+                    <h1>${isLogin ? "Sign in to your ShopSphere account" : "Create your ShopSphere account"}</h1>
+                    <p>${isLogin ? "Access your saved wishlist, cart, and checkout flow with the existing ShopSphere login API." : "Register with the existing ShopSphere API and return to a faster shopping flow."}</p>
+                </div>
+                <div class="stats-grid" aria-label="Account benefits">
+                    <div class="stat-card"><strong>Saved</strong><span>Wishlist state</span></div>
+                    <div class="stat-card"><strong>Fast</strong><span>Checkout intent</span></div>
+                    <div class="stat-card"><strong>Secure</strong><span>API auth flow</span></div>
+                    <div class="stat-card"><strong>Clean</strong><span>Modern forms</span></div>
                 </div>
             </div>
             <form class="auth-card" id="${isLogin ? "loginForm" : "registerForm"}" novalidate>
@@ -519,14 +607,44 @@ function renderAboutPage() {
                 <div>
                     <p class="eyebrow">About ShopSphere</p>
                     <h1>Designed for confident everyday shopping</h1>
-                    <p>ShopSphere is a production-style static e-commerce experience with polished product discovery, account flows, and cart interactions.</p>
+                    <p>ShopSphere brings a premium storefront feel to a fast static shopping experience with polished discovery, account flows, wishlist, and cart interactions.</p>
                 </div>
             </div>
-            <div class="feature-grid">
-                <article class="info-card"><h3>Curated catalog</h3><p>Products include categories, prices, ratings, descriptions, and resilient image handling.</p></article>
-                <article class="info-card"><h3>Fast interactions</h3><p>Search, filters, cart, wishlist, and route changes update instantly in the browser.</p></article>
-                <article class="info-card"><h3>Responsive design</h3><p>The layout adapts cleanly across phone, tablet, and desktop screens.</p></article>
+            <div class="about-story-grid">
+                <article class="story-panel featured">
+                    <p class="eyebrow">Brand story</p>
+                    <h2>Modern tech shopping without the noise</h2>
+                    <p>We keep the catalog focused, the interface calm, and every action clear so customers can compare essentials and move from interest to cart quickly.</p>
+                </article>
+                <article class="story-panel">
+                    <h3>Mission</h3>
+                    <p>Make online tech shopping feel fast, elegant, and trustworthy on every device.</p>
+                    <div class="chip-row">
+                        <span class="chip">Premium UI</span>
+                        <span class="chip">Reliable flows</span>
+                        <span class="chip">Static deploy</span>
+                    </div>
+                </article>
             </div>
+            <div class="stats-grid" aria-label="ShopSphere stats">
+                <div class="stat-card"><strong>5</strong><span>Curated products</span></div>
+                <div class="stat-card"><strong>4</strong><span>Core shopping flows</span></div>
+                <div class="stat-card"><strong>100%</strong><span>Responsive layout</span></div>
+                <div class="stat-card"><strong>1</strong><span>Static frontend</span></div>
+            </div>
+            <section class="section">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Why choose us</p>
+                        <h2>Built around clarity</h2>
+                    </div>
+                </div>
+                <div class="feature-grid">
+                    <article class="info-card"><strong>Discover</strong><h3>Curated catalog</h3><p>Product data includes categories, prices, ratings, descriptions, and resilient image handling.</p></article>
+                    <article class="info-card"><strong>Decide</strong><h3>Fast interactions</h3><p>Search, filters, cart, wishlist, and route changes update instantly in the browser.</p></article>
+                    <article class="info-card"><strong>Return</strong><h3>Persistent state</h3><p>Wishlist, cart, theme, and account state stay available across sessions.</p></article>
+                </div>
+            </section>
             ${newsletterBlock()}
         </section>
     `;
@@ -563,12 +681,18 @@ function renderContactPage() {
                     <button class="button" type="submit">Send Message</button>
                 </form>
             </div>
-            <aside class="summary-card">
-                <h2>Support details</h2>
-                <div class="summary-line"><span>Email</span><strong>support@shopsphere.example</strong></div>
-                <div class="summary-line"><span>Phone</span><strong>7820870530</strong></div>
-                <div class="summary-line"><span>Hours</span><strong>Mon-Sat</strong></div>
-                <p>For order questions, include your email and product name so support can respond quickly.</p>
+            <aside>
+                <div class="summary-card">
+                    <h2>Support details</h2>
+                    <div class="summary-line"><span>Email</span><strong>support@shopsphere.example</strong></div>
+                    <div class="summary-line"><span>Phone</span><strong>7820870530</strong></div>
+                    <div class="summary-line"><span>Hours</span><strong>Mon-Sat</strong></div>
+                    <p>For order questions, include your email and product name so support can respond quickly.</p>
+                </div>
+                <div class="contact-card-grid">
+                    <article class="contact-card"><h3>Product guidance</h3><p>Ask about specs, comparisons, saved wishlist items, or checkout readiness.</p></article>
+                    <article class="contact-card"><h3>Account help</h3><p>Get support for login, registration, saved cart state, and contact form validation.</p></article>
+                </div>
             </aside>
         </section>
     `;
@@ -578,6 +702,7 @@ function newsletterBlock() {
     return `
         <section class="newsletter-band" aria-label="Newsletter subscription">
             <div>
+                <p class="eyebrow">ShopSphere updates</p>
                 <h2>Get launch offers first</h2>
                 <p>Subscribe for product drops, price alerts, and member-only deals.</p>
             </div>
@@ -596,9 +721,11 @@ function newsletterBlock() {
 function emptyState(title, text, cta, href) {
     return `
         <div class="empty-state">
-            <h2>${title}</h2>
-            <p>${text}</p>
-            ${cta ? `<div class="section-actions center-actions"><a class="button" href="${href}">${cta}</a></div>` : ""}
+            <div>
+                <h2>${escapeHtml(title)}</h2>
+                <p>${escapeHtml(text)}</p>
+                ${cta ? `<div class="section-actions center-actions"><a class="button" href="${escapeAttribute(href)}">${escapeHtml(cta)}</a></div>` : ""}
+            </div>
         </div>
     `;
 }
@@ -683,12 +810,12 @@ function openQuickView(id) {
             <div class="quick-view">
                 ${imageHtml(product)}
                 <div class="quick-view-body">
-                    <span class="badge">${product.category}</span>
-                    <h2 id="quickViewTitle">${product.name}</h2>
-                    <p>${product.description}</p>
+                    <span class="badge">${escapeHtml(product.category)}</span>
+                    <h2 id="quickViewTitle">${escapeHtml(product.name)}</h2>
+                    <p>${escapeHtml(product.description)}</p>
                     <div class="price-row">
                         <span class="price">${formatCurrency(product.price)}</span>
-                        <span class="rating">&starf; ${product.rating}</span>
+                        <span class="rating">&starf; ${escapeHtml(product.rating)}</span>
                     </div>
                     <div class="chip-row">
                         <span class="chip">Free returns</span>
@@ -696,8 +823,8 @@ function openQuickView(id) {
                         <span class="chip">Fast dispatch</span>
                     </div>
                     <div class="form-actions">
-                        <button class="button" type="button" data-action="add-cart" data-id="${product.id}">Add to Cart</button>
-                        <button class="button button-outline" type="button" data-action="wishlist" data-id="${product.id}">${wished ? "Remove Favorite" : "Save Favorite"}</button>
+                        <button class="button" type="button" data-action="add-cart" data-id="${escapeAttribute(product.id)}">Add to Cart</button>
+                        <button class="button button-outline" type="button" data-action="wishlist" data-id="${escapeAttribute(product.id)}">${wished ? "Remove Favorite" : "Save Favorite"}</button>
                     </div>
                 </div>
             </div>
@@ -763,7 +890,6 @@ async function login(form) {
     }
 }
 
-
 async function register(form) {
     const values = Object.fromEntries(new FormData(form));
     const submitButton = form.querySelector("button[type='submit']");
@@ -799,7 +925,6 @@ async function register(form) {
         setLoading(submitButton, false);
     }
 }
-
 
 function logout() {
     state.user = null;
@@ -853,8 +978,10 @@ function isValidEmail(email) {
 }
 
 function clearErrors(form) {
-    form.querySelectorAll(".field-error").forEach(error => error.textContent = "");
-    form.querySelectorAll("input, textarea").forEach(input => input.removeAttribute("aria-invalid"));
+    form.querySelectorAll(".field-error").forEach(error => {
+        error.textContent = "";
+    });
+    form.querySelectorAll("input, textarea, select").forEach(input => input.removeAttribute("aria-invalid"));
 }
 
 function showErrors(form, errors) {

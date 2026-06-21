@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopSphere | Premium Tech Store</title>
-    <meta name="description" content="ShopSphere is a responsive tech shopping website with product search, wishlist, cart, login, and checkout flows.">
+    <title>ShopSphere | Premium Tech Essentials</title>
+    <meta name="description" content="ShopSphere is a premium tech storefront with product search, wishlist, cart, login, and checkout flows.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23171717'/%3E%3Ctext x='32' y='42' font-size='34' text-anchor='middle' fill='%23d9a15d' font-family='Arial'%3ES%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -28,24 +29,39 @@
             <a href="#/contact" data-route="/contact">Contact</a>
             <a class="cart-link" href="#/cart" data-route="/cart">Cart <span id="cartCount">0</span></a>
             <a class="auth-link" id="authLink" href="#/login" data-route="/login">Login</a>
-            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">
+                <span class="theme-switch" aria-hidden="true"></span>
+                <span id="themeLabel">Theme</span>
+            </button>
         </nav>
     </header>
 
     <main id="main" tabindex="-1"></main>
 
     <footer class="footer">
-        <div>
+        <div class="footer-column footer-brand-column">
             <a class="brand footer-brand" href="#/">
                 <span class="brand-mark">S</span>
                 <span>ShopSphere</span>
             </a>
-            <p>Five selected premium tech products in one fast static storefront.</p>
+            <p>Premium tech essentials curated for speed, style, and everyday use.</p>
         </div>
-        <div class="footer-links">
-            <a href="#/products">Products</a>
-            <a href="#/wishlist">Wishlist</a>
-            <button id="footerNewsletter" type="button">Newsletter</button>
+        <div class="footer-column">
+            <h2>Quick Links</h2>
+            <div class="footer-links">
+                <a href="#/">Home</a>
+                <a href="#/products">Products</a>
+                <a href="#/wishlist">Wishlist</a>
+                <a href="#/cart">Cart</a>
+            </div>
+        </div>
+        <div class="footer-column">
+            <h2>Support</h2>
+            <div class="footer-links">
+                <a href="#/about">About</a>
+                <a href="#/contact">Contact</a>
+                <button id="footerNewsletter" type="button">Newsletter</button>
+            </div>
         </div>
         <p class="copyright">&copy; <span id="year"></span> ShopSphere. All rights reserved.</p>
     </footer>
