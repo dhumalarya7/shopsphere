@@ -1,4 +1,5 @@
-const API_URL = "https://shopsphere-zqm5.onrender.com";
+const REMOTE_API_URL = "https://shopsphere-zqm5.onrender.com";
+const API_URL = getApiBaseUrl();
 const productGroups = [
     {
         category: "Premium Tech",
@@ -130,13 +131,14 @@ function formatCurrency(amount) {
 }
 
 async function requestJson(endpoint, options = {}) {
-    const url = endpoint.startsWith("http") ? endpoint : `${API_URL}${endpoint}`;
+    const url = buildApiUrl(endpoint);
+    const headers = {
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.headers || {})
+    };
     const response = await fetch(url, {
         ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {})
-        }
+        headers
     });
 
     let data = null;
@@ -151,6 +153,19 @@ async function requestJson(endpoint, options = {}) {
     }
 
     return data;
+}
+
+function getApiBaseUrl() {
+    const host = window.location.hostname;
+    if (host.endsWith("vercel.app")) return "/api";
+    return REMOTE_API_URL;
+}
+
+function buildApiUrl(endpoint) {
+    if (endpoint.startsWith("http")) return endpoint;
+    const base = API_URL.replace(/\/$/, "");
+    const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    return `${base}${path}`;
 }
 
 function normalizeApiProduct(apiProduct, index) {
@@ -174,9 +189,13 @@ function normalizeApiProduct(apiProduct, index) {
 }
 
 async function loadProductsFromApi() {
+    if (API_URL === REMOTE_API_URL && ["localhost", "127.0.0.1", ""].includes(window.location.hostname)) {
+        return;
+    }
+
     try {
         const apiProducts = await requestJson("/products", { method: "GET" });
-        if (!Array.isArray(apiProducts) || !apiProducts.length) return;
+        if (!shouldUseApiProducts(apiProducts)) return;
 
         products = apiProducts.map(normalizeApiProduct);
         if (["/", "/products", "/wishlist", "/cart"].includes(getRoute().path)) {
@@ -185,6 +204,13 @@ async function loadProductsFromApi() {
     } catch {
         products = [...localProducts];
     }
+}
+
+function shouldUseApiProducts(apiProducts) {
+    if (!Array.isArray(apiProducts) || !apiProducts.length) return false;
+    const localNames = new Set(localProducts.map(product => product.name.toLowerCase()));
+    return apiProducts.length >= localProducts.length
+        && apiProducts.every(product => localNames.has(String(product.name || "").toLowerCase()));
 }
 
 function getRoute() {
@@ -862,7 +888,7 @@ async function login(form) {
     setLoading(submitButton, true);
 
     try {
-        const data = await requestJson(`${API_URL}/login`, {
+        const data = await requestJson("/login", {
             method: "POST",
             body: JSON.stringify({
                 email: values.email,
@@ -905,7 +931,7 @@ async function register(form) {
     setLoading(submitButton, true);
 
     try {
-        await requestJson(`${API_URL}/register`, {
+        await requestJson("/register", {
             method: "POST",
             body: JSON.stringify({
                 name: values.name,

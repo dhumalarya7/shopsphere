@@ -33,19 +33,34 @@ DEFAULT_PRODUCTS = [
     {"name": "Apple Watch Series 10", "price": 49900},
     {"name": "Samsung Odyssey G6", "price": 39999},
 ]
+DEFAULT_ALLOWED_ORIGINS = [
+    "https://shopsphere-tau-mauve.vercel.app",
+    "https://shopsphere-ariii1.vercel.app",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ORIGIN_REGEX = os.getenv(
+    "CORS_ORIGIN_REGEX",
+    r"^(https://shopsphere(?:-[a-z0-9-]+)?\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+)$",
+)
+
+
+def get_allowed_origins() -> list[str]:
+    configured_origins = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    return sorted(set(DEFAULT_ALLOWED_ORIGINS + configured_origins))
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://shopsphere-tau-mauve.vercel.app",
-        "https://shopsphere-ariii1.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=get_allowed_origins(),
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
